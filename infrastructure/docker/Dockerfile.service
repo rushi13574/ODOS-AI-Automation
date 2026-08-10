@@ -1,0 +1,64 @@
+# Multi-stage Dockerfile for NestJS services and API Gateway
+# Used by docker-compose with build arg SERVICE_PATH
+
+# ============================================
+# Stage 1: Install dependencies
+# ============================================
+FROM node:22-alpine AS deps
+
+RUN npm install -g pnpm@11
+
+WORKDIR /app
+
+# Copy workspace config
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY turbo.json ./
+
+# Copy all shared package.json files
+COPY packages/config/package.json ./packages/config/
+COPY packages/types/package.json ./packages/types/
+COPY packages/validation/package.json ./packages/validation/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/ui/package.json ./packages/ui/
+
+# Copy target service manifest
+ARG SERVICE_PATH
+COPY ${SERVICE_PATH}/package.json ./${SERVICE_PATH}/
+
+# Install all workspace dependencies
+RUN pnpm install --frozen-lockfile
+
+# ============================================
+# Stage 2: Build the service
+# ============================================
+FROM deps AS builder
+
+ARG SERVICE_PATH
+
+# Copy source code
+COPY packages/ ./packages/
+COPY ${SERVICE_PATH}/ ./${SERVICE_PATH}/
+
+WORKDIR /app/${SERVICE_PATH}
+RUN npx nest build
+
+# ============================================
+# Stage 3: Production runner
+# ============================================
+FROM node:22-alpine AS runner
+
+RUN npm install -g pnpm@11
+
+WORKDIR /app
+
+ARG SERVICE_PATH
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/${SERVICE_PATH}/dist ./${SERVICE_PATH}/dist
+COPY --from=builder /app/${SERVICE_PATH}/package.json ./${SERVICE_PATH}/
+
+WORKDIR /app/${SERVICE_PATH}
+
+CMD ["node", "dist/main"]

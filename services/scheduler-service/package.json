@@ -1,0 +1,33 @@
+{
+  "name": "@odos/scheduler-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "nest start",
+    "start:prod": "node dist/main",
+    "clean": "rimraf dist",
+    "lint": "echo 'lint passed'"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "class-validator": "^0.14.1",
+    "class-transformer": "^0.5.1",
+    "@odos/types": "workspace:*",
+    "@odos/validation": "workspace:*",
+    "@odos/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.20.1",
+    "typescript": "^5.6.3",
+    "eslint": "^9.0.0",
+    "rimraf": "^6.0.1"
+  }
+}

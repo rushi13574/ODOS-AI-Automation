@@ -1,0 +1,72 @@
+# Multi-stage Dockerfile for Next.js Frontend
+# Used by docker-compose
+
+# ============================================
+# Stage 1: Install dependencies
+# ============================================
+FROM node:22-alpine AS deps
+
+RUN npm install -g pnpm@11
+
+WORKDIR /app
+
+# Copy workspace config
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
+COPY turbo.json ./
+
+# Copy all shared package.json files
+COPY packages/config/package.json ./packages/config/
+COPY packages/types/package.json ./packages/types/
+COPY packages/validation/package.json ./packages/validation/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/ui/package.json ./packages/ui/
+
+# Copy target web manifest
+COPY apps/web/package.json ./apps/web/
+
+# Install all workspace dependencies
+RUN pnpm install --frozen-lockfile
+
+# ============================================
+# Stage 2: Build Next.js
+# ============================================
+FROM deps AS builder
+
+# Copy source code
+COPY packages/ ./packages/
+COPY apps/web/ ./apps/web/
+
+# Pass build-time env placeholders to avoid ssr check errors during static rendering
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
+ENV NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+
+WORKDIR /app/apps/web
+RUN npx next build
+
+# ============================================
+# Stage 3: Runner stage
+# ============================================
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install pnpm for launching dev server or production server
+RUN npm install -g pnpm@11
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/web/package.json ./apps/web/
+COPY --from=builder /app/apps/web/.next ./apps/web/.next
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/next.config.ts ./apps/web/
+COPY --from=builder /app/apps/web/src ./apps/web/src
+
+WORKDIR /app/apps/web
+
+EXPOSE 3000
+
+CMD ["npx", "next", "start"]

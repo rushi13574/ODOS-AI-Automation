@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Infrastructure
+  # ============================================
+  mongodb:
+    image: mongo:7
+    container_name: odos-mongodb
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Frontend Application
+  # ============================================
+  web:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.web
+    container_name: odos-web
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-https://placeholder.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-placeholder-key}
+    depends_on:
+      - api-gateway
+
+  # ============================================
+  # API Gateway
+  # ============================================
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: apps/api-gateway
+    container_name: odos-api-gateway
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      FRONTEND_URL: http://localhost:3000
+      SUPABASE_URL: ${SUPABASE_URL:-https://placeholder.supabase.co}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-placeholder-key}
+    depends_on:
+      - user-service
+      - learning-service
+      - roadmap-service
+      - scheduler-service
+      - ai-service
+      - resource-document-service
+
+  # ============================================
+  # Backend Services
+  # ============================================
+  user-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/user-service
+    container_name: odos-user-service
+    ports:
+      - '4001:4001'
+    environment:
+      NODE_ENV: development
+      PORT: 4001
+      MONGODB_URI: mongodb://mongodb:27017/odos_users
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  learning-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/learning-service
+    container_name: odos-learning-service
+    ports:
+      - '4002:4002'
+    environment:
+      NODE_ENV: development
+      PORT: 4002
+      MONGODB_URI: mongodb://mongodb:27017/odos_learning
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  roadmap-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/roadmap-service
+    container_name: odos-roadmap-service
+    ports:
+      - '4003:4003'
+    environment:
+      NODE_ENV: development
+      PORT: 4003
+      MONGODB_URI: mongodb://mongodb:27017/odos_roadmaps
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  scheduler-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/scheduler-service
+    container_name: odos-scheduler-service
+    ports:
+      - '4004:4004'
+    environment:
+      NODE_ENV: development
+      PORT: 4004
+      MONGODB_URI: mongodb://mongodb:27017/odos_schedules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/ai-service
+    container_name: odos-ai-service
+    ports:
+      - '4005:4005'
+    environment:
+      NODE_ENV: development
+      PORT: 4005
+      MONGODB_URI: mongodb://mongodb:27017/odos_ai
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  resource-document-service:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_PATH: services/resource-document-service
+    container_name: odos-resource-document-service
+    ports:
+      - '4006:4006'
+    environment:
+      NODE_ENV: development
+      PORT: 4006
+      MONGODB_URI: mongodb://mongodb:27017/odos_resources
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:

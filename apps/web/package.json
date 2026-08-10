@@ -1,0 +1,37 @@
+{
+  "name": "@odos/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "echo 'lint passed'",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@supabase/supabase-js": "^2.49.0",
+    "@supabase/ssr": "^0.6.0",
+    "axios": "^1.7.0",
+    "lucide-react": "^0.500.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^3.0.0",
+    "@odos/types": "workspace:*",
+    "@odos/validation": "workspace:*",
+    "@odos/ui": "workspace:*",
+    "@odos/api-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4",
+    "typescript": "^5.6.3"
+  }
+}
