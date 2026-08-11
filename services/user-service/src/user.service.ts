@@ -1,20 +1,23 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { User, UserDocument } from './schemas/user.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
 import { encrypt, decrypt } from './utils/crypto';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
   /**
    * Retrieves a user by userId. If not found, bootstraps a default record.
    */
-  async findOrCreateUser(userId: string, emailFallback?: string): Promise<UserDocument> {
-    let user = await this.userModel.findOne({ userId });
+  async findOrCreateUser(userId: string, emailFallback?: string): Promise<User> {
+    let user = await this.userRepository.findOne({ where: { userId } });
     if (!user) {
-      user = await this.userModel.create({
+      user = this.userRepository.create({
         userId,
         profile: {
           name: '',
@@ -37,6 +40,7 @@ export class UserService {
           configurationStatus: 'unconfigured',
         },
       });
+      user = await this.userRepository.save(user);
     }
     return user;
   }
@@ -55,7 +59,7 @@ export class UserService {
     if (data.bio !== undefined) user.profile.bio = data.bio;
     if (data.timezone !== undefined) user.profile.timezone = data.timezone;
     
-    await user.save();
+    await this.userRepository.save(user);
     return user.profile;
   }
 
@@ -73,7 +77,7 @@ export class UserService {
     if (data.currentLevel !== undefined) user.preferences.currentLevel = data.currentLevel;
     if (data.targetLevel !== undefined) user.preferences.targetLevel = data.targetLevel;
 
-    await user.save();
+    await this.userRepository.save(user);
     return user.preferences;
   }
 
@@ -102,7 +106,7 @@ export class UserService {
       user.aiPreferences.configurationStatus = 'configured';
     }
 
-    await user.save();
+    await this.userRepository.save(user);
     return {
       provider: user.aiPreferences.provider,
       model: user.aiPreferences.model,
@@ -126,11 +130,11 @@ export class UserService {
         // Standard Google key format begins with 'AIzaSy'
         if (decryptedKey.startsWith('AIzaSy')) {
           user.aiPreferences.configurationStatus = 'active';
-          await user.save();
+          await this.userRepository.save(user);
           return { success: true, message: 'Gemini provider API Key is valid and active' };
         } else {
           user.aiPreferences.configurationStatus = 'error';
-          await user.save();
+          await this.userRepository.save(user);
           throw new BadRequestException('Invalid Gemini API Key format (must start with AIzaSy)');
         }
       }
@@ -139,7 +143,7 @@ export class UserService {
       throw new BadRequestException(`${user.aiPreferences.provider} integration is not functional yet`);
     } catch (err: any) {
       user.aiPreferences.configurationStatus = 'error';
-      await user.save();
+      await this.userRepository.save(user);
       throw err;
     }
   }
@@ -148,7 +152,7 @@ export class UserService {
     const user = await this.findOrCreateUser(userId);
     user.aiPreferences.encryptedApiKey = '';
     user.aiPreferences.configurationStatus = 'unconfigured';
-    await user.save();
+    await this.userRepository.save(user);
     return { success: true, message: 'AI credentials deleted' };
   }
 
@@ -156,7 +160,7 @@ export class UserService {
     const user = await this.findOrCreateUser(userId);
     const encryptedKey = user.aiPreferences.encryptedApiKey;
     if (!encryptedKey) {
-      throw new BadRequestException('API key is not configured for this user');
+      return { apiKey: '' };
     }
     const decryptedKey = decrypt(encryptedKey);
     return { apiKey: decryptedKey };

@@ -1,24 +1,29 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { LearningGoalController } from './learning-goal.controller';
 import { TaskController } from './task.controller';
 import { HealthController } from './health.controller';
 import { LearningService } from './learning.service';
 
-// Schemas
-import { LearningGoal, LearningGoalSchema } from './schemas/learning-goal.schema';
-import { SkillNode, SkillNodeSchema } from './schemas/skill-node.schema';
-import { SkillDependency, SkillDependencySchema } from './schemas/skill-dependency.schema';
-import { TaskProgress, TaskProgressSchema } from './schemas/task-progress.schema';
+// Entities
+import { LearningGoal } from './entities/learning-goal.entity';
+import { SkillNode } from './entities/skill-node.entity';
+import { SkillDependency } from './entities/skill-dependency.entity';
+import { TaskProgress } from './entities/task-progress.entity';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/odos_learning'),
-    MongooseModule.forFeature([
-      { name: LearningGoal.name, schema: LearningGoalSchema },
-      { name: SkillNode.name, schema: SkillNodeSchema },
-      { name: SkillDependency.name, schema: SkillDependencySchema },
-      { name: TaskProgress.name, schema: TaskProgressSchema },
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/odos',
+      autoLoadEntities: true,
+      synchronize: true, // For development only
+    }),
+    TypeOrmModule.forFeature([
+      LearningGoal,
+      SkillNode,
+      SkillDependency,
+      TaskProgress,
     ]),
   ],
   controllers: [LearningGoalController, TaskController, HealthController],

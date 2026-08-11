@@ -6,11 +6,9 @@ import { ClaudeProvider } from './claude.provider';
 import { OpenAIProvider } from './openai.provider';
 import { OllamaProvider } from './ollama.provider';
 
-export interface ProviderConfig {
-  provider: string;
-  model?: string;
-  apiKey?: string;
-}
+import { ProviderConfig } from './provider-config.interface';
+
+export { ProviderConfig };
 
 @Injectable()
 export class ProviderRegistry {

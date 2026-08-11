@@ -23,60 +23,37 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const supabase = createClient();
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, s) => {
-        setSession(s);
-        setUser(s?.user ?? null);
-        setLoading(false);
-      },
-    );
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  const [user, setUser] = useState<any>({
+    id: 'mock-user-123',
+    email: 'demo@odos.app',
+    user_metadata: { display_name: 'Demo User' },
+  });
+  const [session, setSession] = useState<any>({
+    access_token: 'mock-token',
+    user: {
+      id: 'mock-user-123',
+      email: 'demo@odos.app',
+    },
+  });
+  const [loading, setLoading] = useState(false);
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { error: error ? new Error(error.message) : null };
+      return { error: null };
     },
-    [supabase.auth],
+    [],
   );
 
   const signUp = useCallback(
     async (email: string, password: string, _displayName: string) => {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { display_name: _displayName },
-        },
-      });
-      return { error: error ? new Error(error.message) : null };
+      return { error: null };
     },
-    [supabase.auth],
+    [],
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, [supabase.auth]);
+    // do nothing
+  }, []);
 
   return (
     <AuthContext.Provider

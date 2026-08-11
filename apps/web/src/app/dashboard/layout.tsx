@@ -45,6 +45,11 @@ export default function DashboardLayout({
         <nav className="flex-1 px-3 py-4 space-y-1">
           {[
             { href: '/dashboard', label: 'Dashboard', icon: '◆' },
+            { href: '/dashboard/today', label: 'Today', icon: '📅' },
+            { href: '/dashboard/calendar', label: 'Calendar', icon: '🗓️' },
+            { href: '/dashboard/progress', label: 'Progress', icon: '📈' },
+            { href: '/dashboard/ai-tutor', label: 'AI Tutor', icon: '🤖' },
+            { href: '/onboarding', label: 'New Roadmap', icon: '✨' },
             { href: '/dashboard/profile', label: 'Profile', icon: '◍' },
           ].map((item) => (
             <a

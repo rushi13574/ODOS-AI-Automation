@@ -1,33 +1,34 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, NotImplementedException } from '@nestjs/common';
 import { AIProvider } from './ai-provider.interface';
+import { ProviderConfig } from './provider-config.interface';
 
 @Injectable()
 export class ClaudeProvider implements AIProvider {
-  private throwNotImplemented(): never {
-    throw new BadRequestException('Claude integration is not functional yet');
+  private throwNotImplemented(methodName: string): never {
+    throw new NotImplementedException(`Claude provider method "${methodName}" is not implemented.`);
   }
 
-  async generateRoadmap(): Promise<any> {
-    this.throwNotImplemented();
+  async generateRoadmap(_prompt: string, _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('generateRoadmap');
   }
 
-  async explainSkill(): Promise<any> {
-    this.throwNotImplemented();
+  async explainSkill(_skillName: string, _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('explainSkill');
   }
 
-  async generateQuiz(): Promise<any> {
-    this.throwNotImplemented();
+  async generateQuiz(_skillName: string, _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('generateQuiz');
   }
 
-  async generateDocument(): Promise<any> {
-    this.throwNotImplemented();
+  async generateDocument(_skillName: string, _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('generateDocument');
   }
 
-  async chat(): Promise<any> {
-    this.throwNotImplemented();
+  async chat(_messages: any[], _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('chat');
   }
 
-  async analyzeProgress(): Promise<any> {
-    this.throwNotImplemented();
+  async analyzeProgress(_progressData: any, _config: ProviderConfig): Promise<any> {
+    this.throwNotImplemented('analyzeProgress');
   }
 }

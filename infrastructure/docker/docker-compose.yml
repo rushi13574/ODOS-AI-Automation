@@ -4,15 +4,19 @@ services:
   # ============================================
   # Infrastructure
   # ============================================
-  mongodb:
-    image: mongo:7
-    container_name: odos-mongodb
+  postgres:
+    image: postgres:15
+    container_name: odos-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: odos
     ports:
-      - '27017:27017'
+      - '5432:5432'
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +36,7 @@ services:
       PORT: 3000
       NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
       NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-https://placeholder.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-placeholder-key}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-placeholder-key}
     depends_on:
       - api-gateway
 
@@ -53,7 +57,7 @@ services:
       PORT: 4000
       FRONTEND_URL: http://localhost:3000
       SUPABASE_URL: ${SUPABASE_URL:-https://placeholder.supabase.co}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-placeholder-key}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-placeholder-key}
     depends_on:
       - user-service
       - learning-service
@@ -77,9 +81,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4001
-      MONGODB_URI: mongodb://mongodb:27017/odos_users
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
   learning-service:
@@ -94,9 +98,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4002
-      MONGODB_URI: mongodb://mongodb:27017/odos_learning
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
   roadmap-service:
@@ -111,9 +115,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4003
-      MONGODB_URI: mongodb://mongodb:27017/odos_roadmaps
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
   scheduler-service:
@@ -128,9 +132,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4004
-      MONGODB_URI: mongodb://mongodb:27017/odos_schedules
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
   ai-service:
@@ -145,9 +149,9 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4005
-      MONGODB_URI: mongodb://mongodb:27017/odos_ai
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
   resource-document-service:
@@ -162,10 +166,10 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4006
-      MONGODB_URI: mongodb://mongodb:27017/odos_resources
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/odos
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
 
 volumes:
-  mongodb_data:
+  postgres_data:

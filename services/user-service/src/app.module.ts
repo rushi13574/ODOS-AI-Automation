@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from './user.controller';
 import { HealthController } from './health.controller';
 import { UserService } from './user.service';
-import { User, UserSchema } from './schemas/user.schema';
+import { User } from './entities/user.entity';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/odos_users'),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/odos',
+      autoLoadEntities: true,
+      synchronize: true, // Use carefully in production!
+    }),
+    TypeOrmModule.forFeature([User]),
   ],
   controllers: [UserController, HealthController],
   providers: [UserService],

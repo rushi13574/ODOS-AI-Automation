@@ -3,6 +3,7 @@ import { AIController } from './ai.controller';
 import { HealthController } from './health.controller';
 import { AIService } from './ai.service';
 import { ProviderRegistry } from './providers/provider-registry';
+import { AIProviderFactory } from './providers/ai-provider.factory';
 
 // Adapters
 import { GeminiProvider } from './providers/gemini.provider';
@@ -16,6 +17,7 @@ import { OllamaProvider } from './providers/ollama.provider';
   providers: [
     AIService,
     ProviderRegistry,
+    AIProviderFactory,
     GeminiProvider,
     GrokProvider,
     ClaudeProvider,

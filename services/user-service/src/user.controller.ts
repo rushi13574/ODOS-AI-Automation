@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Delete, Body, Headers, Param, UnauthorizedException, HttpCode } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Body, Headers, Param, UnauthorizedException, ForbiddenException, HttpCode } from '@nestjs/common';
 import { UserService } from './user.service';
 
 @Controller()
@@ -62,7 +62,14 @@ export class UserController {
   }
 
   @Get('internal/user/:userId/decrypted-api-key')
-  async getDecryptedApiKey(@Param('userId') userId: string) {
+  async getDecryptedApiKey(
+    @Param('userId') userId: string,
+    @Headers('x-internal-service-key') serviceKey?: string,
+  ) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    if (!expectedKey || serviceKey !== expectedKey) {
+      throw new ForbiddenException('Invalid or missing internal service key');
+    }
     return this.userService.getDecryptedApiKey(userId);
   }
 }

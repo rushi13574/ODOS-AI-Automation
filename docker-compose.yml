@@ -1,0 +1,81 @@
+version: '3.8'
+
+x-base-service: &base-service
+  image: node:22-alpine
+  working_dir: /usr/src/app
+  volumes:
+    - .:/usr/src/app
+  environment:
+    - NODE_ENV=development
+  command: sh -c "corepack enable pnpm && pnpm install && pnpm --filter ${SERVICE_NAME} start:dev"
+
+services:
+  api-gateway:
+    <<: *base-service
+    container_name: odos_api_gateway
+    environment:
+      - SERVICE_NAME=api-gateway
+    ports:
+      - "4000:4000"
+    env_file:
+      - services/api-gateway/.env
+
+  user-service:
+    <<: *base-service
+    container_name: odos_user_service
+    environment:
+      - SERVICE_NAME=user-service
+    ports:
+      - "4001:4001"
+    env_file:
+      - services/user-service/.env
+
+  learning-service:
+    <<: *base-service
+    container_name: odos_learning_service
+    environment:
+      - SERVICE_NAME=learning-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - services/learning-service/.env
+
+  roadmap-service:
+    <<: *base-service
+    container_name: odos_roadmap_service
+    environment:
+      - SERVICE_NAME=roadmap-service
+    ports:
+      - "4003:4003"
+    env_file:
+      - services/roadmap-service/.env
+
+  scheduler-service:
+    <<: *base-service
+    container_name: odos_scheduler_service
+    environment:
+      - SERVICE_NAME=scheduler-service
+    ports:
+      - "4004:4004"
+    env_file:
+      - services/scheduler-service/.env
+
+  ai-service:
+    <<: *base-service
+    container_name: odos_ai_service
+    environment:
+      - SERVICE_NAME=ai-service
+    ports:
+      - "4005:4005"
+    env_file:
+      - services/ai-service/.env
+
+  resource-document-service:
+    <<: *base-service
+    container_name: odos_resource_document_service
+    environment:
+      - SERVICE_NAME=resource-document-service
+    ports:
+      - "4006:4006"
+    env_file:
+      - services/resource-document-service/.env
