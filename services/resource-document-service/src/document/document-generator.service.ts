@@ -91,9 +91,14 @@ export class DocumentGeneratorService {
     return this.storageAdapter.getPresignedDownloadUrl(doc.storageKey);
   }
 
-  async getUserDocuments(userId: string): Promise<GeneratedDocument[]> {
+  async getUserDocuments(userId: string, skillId?: string): Promise<GeneratedDocument[]> {
+    const whereClause: any = { userId };
+    if (skillId) {
+      whereClause.skillId = skillId;
+    }
+    
     return this.documentRepo.find({ 
-      where: { userId },
+      where: whereClause,
       order: { createdAt: 'DESC' }
     });
   }

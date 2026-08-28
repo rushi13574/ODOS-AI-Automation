@@ -3,9 +3,13 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
 
 export interface AIProviderConfig {
-  provider: string;
-  model: string;
-  isConfigured: boolean; // Indicates if the backend holds an active API key
+  provider: string | null;
+  model: string | null;
+  configurationStatus: string;
+  hasSystemDefault: boolean;
+  systemProvider: string;
+  systemModel: string;
+  isConfigured: boolean; // Indicates if the backend holds an active personal API key
 }
 
 export function useAIProvider() {
@@ -16,16 +20,14 @@ export function useAIProvider() {
   const fetchConfig = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/ai/config');
-      setConfig(res.data);
+      const res = await apiClient.get('/ai-provider');
+      const data = res.data;
+      setConfig({
+        ...data,
+        isConfigured: data.configurationStatus === 'configured' || data.configurationStatus === 'active'
+      });
     } catch (err: any) {
       setError(err);
-      // Mocking config since AI service is partial
-      setConfig({
-        provider: 'Gemini',
-        model: 'gemini-1.5-pro',
-        isConfigured: false
-      });
     } finally {
       setLoading(false);
     }
@@ -37,37 +39,35 @@ export function useAIProvider() {
 
   const saveConfig = async (provider: string, model: string, apiKey: string) => {
     try {
-      // The API key is sent only in the request body to the backend.
-      // It is never persisted locally.
-      await apiClient.put('/ai/config', { provider, model, apiKey });
-      setConfig({ provider, model, isConfigured: true });
+      const res = await apiClient.patch('/ai-provider', { provider, model, apiKey });
+      setConfig((prev) => prev ? { 
+        ...prev, 
+        provider, 
+        model, 
+        configurationStatus: res.data.configurationStatus,
+        isConfigured: true 
+      } : null);
     } catch (err) {
-      // Mock success for UI dev
-      setConfig({ provider, model, isConfigured: true });
       throw err;
     }
   };
 
   const testConnection = async (provider: string, model: string, apiKey: string) => {
     try {
-      const res = await apiClient.post('/ai/config/test', { provider, model, apiKey });
+      const res = await apiClient.post('/ai-provider/test', { provider, model, apiKey });
       return res.data.success;
     } catch (err) {
-      // Mock success
-      return true;
+      throw err;
     }
   };
 
   const removeConfig = async () => {
     try {
-      await apiClient.delete('/ai/config');
+      await apiClient.delete('/ai-provider');
       if (config) {
-        setConfig({ ...config, isConfigured: false });
+        setConfig({ ...config, configurationStatus: 'unconfigured', isConfigured: false });
       }
     } catch (err) {
-      if (config) {
-        setConfig({ ...config, isConfigured: false });
-      }
       throw err;
     }
   };

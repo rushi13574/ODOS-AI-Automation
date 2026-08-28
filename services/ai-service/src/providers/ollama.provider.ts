@@ -29,6 +29,20 @@ export class OllamaProvider implements AIProvider {
   }
 
   async analyzeProgress(_progressData: any, _config: ProviderConfig): Promise<any> {
-    this.throwNotImplemented('analyzeProgress');
+    throw new Error('Method not implemented for Ollama.');
+  }
+
+  async generateOnboardingQuestions(skillName: string, _config: ProviderConfig): Promise<any> {
+    return {
+      skillCategory: 'general',
+      questions: [
+        {
+          id: 'purpose',
+          question: `What do you want to achieve with ${skillName}?`,
+          type: 'single_select',
+          options: ['Personal interest', 'Career growth', 'Academic requirement', 'Other'],
+        },
+      ],
+    };
   }
 }

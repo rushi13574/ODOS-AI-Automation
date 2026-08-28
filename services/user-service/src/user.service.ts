@@ -17,7 +17,7 @@ export class UserService {
   async findOrCreateUser(userId: string, emailFallback?: string): Promise<User> {
     let user = await this.userRepository.findOne({ where: { userId } });
     if (!user) {
-      user = this.userRepository.create({
+      const newUser = this.userRepository.create({
         userId,
         profile: {
           name: '',
@@ -34,15 +34,24 @@ export class UserService {
           targetLevel: 'advanced',
         },
         aiPreferences: {
-          provider: 'gemini',
-          model: 'gemini-1.5-pro',
-          encryptedApiKey: '',
+          provider: null,
+          model: null,
+          encryptedApiKey: null,
           configurationStatus: 'unconfigured',
         },
       });
-      user = await this.userRepository.save(user);
+
+      try {
+        await this.userRepository.insert(newUser);
+      } catch (error: any) {
+        if (error.code !== '23505') {
+          throw error;
+        }
+      }
+
+      user = await this.userRepository.findOne({ where: { userId } });
     }
-    return user;
+    return user!;
   }
 
   async getProfile(userId: string) {
@@ -83,10 +92,19 @@ export class UserService {
 
   async getAiProvider(userId: string) {
     const user = await this.findOrCreateUser(userId);
+    
+    // Check if server default is available (checking .env for default provider logic)
+    const hasSystemDefault = !!process.env.DEFAULT_AI_PROVIDER;
+    const systemProvider = process.env.DEFAULT_AI_PROVIDER || 'gemini';
+    const systemModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash'; // Conceptual fallback if GEMINI_MODEL not set
+
     return {
       provider: user.aiPreferences.provider,
       model: user.aiPreferences.model,
       configurationStatus: user.aiPreferences.configurationStatus,
+      hasSystemDefault,
+      systemProvider,
+      systemModel,
     };
   }
 
@@ -111,6 +129,9 @@ export class UserService {
       provider: user.aiPreferences.provider,
       model: user.aiPreferences.model,
       configurationStatus: user.aiPreferences.configurationStatus,
+      hasSystemDefault: !!process.env.DEFAULT_AI_PROVIDER,
+      systemProvider: process.env.DEFAULT_AI_PROVIDER || 'gemini',
+      systemModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
     };
   }
 
@@ -150,7 +171,9 @@ export class UserService {
 
   async deleteAiProvider(userId: string) {
     const user = await this.findOrCreateUser(userId);
-    user.aiPreferences.encryptedApiKey = '';
+    user.aiPreferences.provider = null;
+    user.aiPreferences.model = null;
+    user.aiPreferences.encryptedApiKey = null;
     user.aiPreferences.configurationStatus = 'unconfigured';
     await this.userRepository.save(user);
     return { success: true, message: 'AI credentials deleted' };

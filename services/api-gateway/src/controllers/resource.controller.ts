@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ResourceDocumentServiceClient } from '../clients/resource-document-service.client';
 import { JwtAuthGuard } from '../guards/auth.guard';
 import type { Request } from 'express';
@@ -14,7 +23,10 @@ export class ResourceDocumentController {
   }
 
   @Get('resources/skill/:skillId')
-  async getSkillResources(@Param('skillId') skillId: string, @Req() req: Request) {
+  async getSkillResources(
+    @Param('skillId') skillId: string,
+    @Req() req: Request,
+  ) {
     return this.resourceClient.getSkillResources(skillId, req);
   }
 

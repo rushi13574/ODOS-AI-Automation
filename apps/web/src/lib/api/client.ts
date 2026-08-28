@@ -18,4 +18,17 @@ const apiClient = createApiClient({
   },
 });
 
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Rather than a destructive hard-reload that causes redirect loops 
+      // on transient race conditions, we simply log it or dispatch an event.
+      // The true authentication state is managed by Supabase and AuthProvider.
+      console.warn('[API CLIENT] 401 Unauthorized received from backend');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;

@@ -22,4 +22,9 @@ export class AIController {
   async generateQuiz(@Body() body: any, @Req() req: Request) {
     return this.aiClient.generateQuiz(body, req);
   }
+
+  @Post('onboarding-questions')
+  async generateOnboardingQuestions(@Body() body: any, @Req() req: Request) {
+    return this.aiClient.generateOnboardingQuestions(body, req);
+  }
 }

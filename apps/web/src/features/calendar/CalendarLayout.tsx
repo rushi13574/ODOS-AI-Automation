@@ -6,38 +6,59 @@ import { CalendarGrid } from './CalendarGrid';
 import { TimelineView } from './TimelineView';
 import { ComparisonTable } from './ComparisonTable';
 import { TaskDetailView } from './TaskDetailView';
-import { Loader2, LayoutGrid, List, Columns } from 'lucide-react';
+import { Loader2, LayoutGrid, List, Columns, AlertCircle, Calendar } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 export function CalendarLayout({ roadmapId }: { roadmapId?: string }) {
   const { data, loading, error } = useCalendar(roadmapId);
   
   const [mode, setMode] = useState<'current' | 'baseline' | 'comparison'>('current');
-  const [view, setView] = useState<'grid' | 'timeline'>('grid');
+  const [view, setView] = useState<'grid' | 'timeline'>('timeline');
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
 
-  if (loading && !data) {
+  if (!roadmapId) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-      </div>
+      <EmptyState
+        icon={<Calendar className="w-8 h-8 text-gray-400" />}
+        title="Your learning schedule hasn't been prepared yet."
+        description="We organize your learning goals into an adaptive calendar. Start a journey to see it here."
+      />
     );
   }
 
-  if (error || !data) {
+  if (loading && !data) {
+    return <LoadingState message="Loading your schedule..." />;
+  }
+
+  if (error) {
     return (
-      <div className="bg-red-50 text-red-600 p-6 rounded-xl border border-red-200">
-        <h2 className="text-lg font-bold mb-2">Could not load calendar</h2>
-        <p>{error?.message}</p>
-      </div>
+      <EmptyState
+        icon={<AlertCircle className="w-8 h-8 text-red-500" />}
+        title="Could not load calendar"
+        description={error.message || "An unexpected error occurred."}
+      />
     );
   }
+
+  if (data && data.baseline.length === 0 && data.current.length === 0) {
+    return (
+      <EmptyState
+        icon={<Calendar className="w-8 h-8 text-gray-400" />}
+        title="Your learning schedule hasn't been prepared yet."
+        description="We're organizing your skills into a daily schedule."
+      />
+    );
+  }
+
+  if (!data) return null;
 
   return (
     <div className="max-w-6xl mx-auto pb-20 md:pb-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Learning Schedule</h1>
-          <p className="text-gray-500">Track and compare your adaptive learning calendar.</p>
+          <p className="text-gray-500">Your focused learning plan, ordered by the days that matter.</p>
         </div>
 
         <div className="mt-4 md:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
@@ -97,6 +118,7 @@ export function CalendarLayout({ roadmapId }: { roadmapId?: string }) {
             tasks={mode === 'baseline' ? data.baseline : data.current} 
             mode={mode} 
             onSelectTask={setSelectedTask}
+            learningGoalId={roadmapId}
           />
         )}
       </div>

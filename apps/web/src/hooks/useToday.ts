@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
+import { queryCache } from '../lib/cache';
 
 export interface Task {
   id: string;
@@ -13,17 +14,17 @@ export interface Task {
 
 export interface TodayMetrics {
   currentSkill: string;
-  currentModule: string;
-  dayNumber: number;
+  currentModule: string | null;
+  dayNumber: number | null;
   estimatedTotalTime: number;
   completedTime: number;
   remainingTime: number;
   progressPercentage: number;
   projectedCompletionDate: string;
-  delayComparedToBaseline: number; // in days
+  delayComparedToBaseline: number;
 }
 
-export function useToday(roadmapId?: string) {
+export function useToday(learningGoalId?: string) {
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [metrics, setMetrics] = useState<TodayMetrics | null>(null);
@@ -32,29 +33,59 @@ export function useToday(roadmapId?: string) {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [activeGoal, setActiveGoal] = useState<any>(null);
+  const [roadmap, setRoadmap] = useState<any>(null);
 
   useEffect(() => {
-    if (!roadmapId) return;
+    let isMounted = true;
     const fetchToday = async () => {
       try {
-        setLoading(true);
-        // This hits the gateway, which routes to Scheduler Service + Learning Service
-        // Mocking the structure for now since the backend endpoint might just return raw calendar
-        const res = await apiClient.get(`/learning/today/${roadmapId}`);
+        const cacheKey = `today-${learningGoalId || 'default'}`;
         
-        setTodayTasks(res.data?.todayTasks || []);
-        setOverdueTasks(res.data?.overdueTasks || []);
-        setMetrics(res.data?.metrics || null);
-        setObjectives(res.data?.objectives || []);
-        setResources(res.data?.resources || []);
+        // Optimistically render from cache
+        const cachedRes = queryCache.getCache<any>(cacheKey);
+        if (cachedRes && isMounted) {
+          setTodayTasks(cachedRes.todayTasks || []);
+          setOverdueTasks(cachedRes.overdueTasks || []);
+          setMetrics(cachedRes.metrics || null);
+          setObjectives(cachedRes.objectives || []);
+          setResources(cachedRes.resources || []);
+          setActiveGoal(cachedRes.activeGoal || null);
+          setRoadmap(cachedRes.roadmap || null);
+          setLoading(false); // Can hide loader immediately
+        } else {
+          setLoading(true);
+        }
+
+        // Fetch (or deduplicate) fresh data
+        const res = await queryCache.getOrFetch(cacheKey, async () => {
+          const r = await apiClient.get('/today', { params: learningGoalId ? { learningGoalId } : {} });
+          return r.data;
+        });
+        
+        if (isMounted) {
+          setTodayTasks(res?.todayTasks || []);
+          setOverdueTasks(res?.overdueTasks || []);
+          setMetrics(res?.metrics || null);
+          setObjectives(res?.objectives || []);
+          setResources(res?.resources || []);
+          setActiveGoal(res?.activeGoal || null);
+          setRoadmap(res?.roadmap || null);
+        }
       } catch (err: any) {
-        setError(err);
+        if (isMounted) {
+          setError(err);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchToday();
-  }, [roadmapId]);
+    
+    return () => { isMounted = false; };
+  }, [learningGoalId]);
 
   const updateTaskStatus = async (taskId: string, status: Task['status'], partialMinutes?: number) => {
     try {
@@ -86,7 +117,9 @@ export function useToday(roadmapId?: string) {
     overdueTasks, 
     metrics, 
     objectives, 
-    resources, 
+    resources,
+    activeGoal,
+    roadmap,
     loading, 
     error,
     startTask,

@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { HttpService } from '@nestjs/axios';
 import type { Request } from 'express';
 import { AxiosRequestConfig } from 'axios';
 import { catchError, timeout, firstValueFrom } from 'rxjs';
-import { InternalServerErrorException, Logger, BadGatewayException, GatewayTimeoutException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  Logger,
+  BadGatewayException,
+  GatewayTimeoutException,
+} from '@nestjs/common';
 
 export abstract class BaseServiceClient {
   protected abstract readonly logger: Logger;
@@ -28,19 +34,37 @@ export abstract class BaseServiceClient {
     return headers;
   }
 
-  protected async get<T>(url: string, req?: Request, config?: AxiosRequestConfig): Promise<T> {
+  protected async get<T>(
+    url: string,
+    req?: Request,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     return this.request<T>('get', url, undefined, req, config);
   }
 
-  protected async post<T>(url: string, data?: any, req?: Request, config?: AxiosRequestConfig): Promise<T> {
+  protected async post<T>(
+    url: string,
+    data?: any,
+    req?: Request,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     return this.request<T>('post', url, data, req, config);
   }
 
-  protected async put<T>(url: string, data?: any, req?: Request, config?: AxiosRequestConfig): Promise<T> {
+  protected async put<T>(
+    url: string,
+    data?: any,
+    req?: Request,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     return this.request<T>('put', url, data, req, config);
   }
 
-  protected async delete<T>(url: string, req?: Request, config?: AxiosRequestConfig): Promise<T> {
+  protected async delete<T>(
+    url: string,
+    req?: Request,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
     return this.request<T>('delete', url, undefined, req, config);
   }
 
@@ -69,7 +93,9 @@ export abstract class BaseServiceClient {
           timeout(timeoutMs),
           catchError((error) => {
             if (error.name === 'TimeoutError') {
-              throw new GatewayTimeoutException(`Service timeout: ${this.constructor.name} - ${url}`);
+              throw new GatewayTimeoutException(
+                `Service timeout: ${this.constructor.name} - ${url}`,
+              );
             }
             throw error;
           }),
@@ -80,9 +106,12 @@ export abstract class BaseServiceClient {
       if (error instanceof GatewayTimeoutException) {
         throw error;
       }
-      
-      this.logger.error(`Request to ${fullUrl} failed: ${error.message}`, error.stack);
-      
+
+      this.logger.error(
+        `Request to ${fullUrl} failed: ${error.message}`,
+        error.stack,
+      );
+
       if (error.response) {
         // Propagate the specific downstream status/message
         throw new BadGatewayException({
@@ -91,8 +120,10 @@ export abstract class BaseServiceClient {
           service: this.constructor.name,
         });
       }
-      
-      throw new InternalServerErrorException(`Failed to communicate with ${this.constructor.name}`);
+
+      throw new InternalServerErrorException(
+        `Failed to communicate with ${this.constructor.name}`,
+      );
     }
   }
 }

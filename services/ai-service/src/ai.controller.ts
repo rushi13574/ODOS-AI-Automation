@@ -85,4 +85,15 @@ export class AIController {
     const uid = this.checkUserId(userId);
     return this.aiService.generateDocument(uid, body.skillName, correlationId);
   }
+
+  @Post('onboarding-questions')
+  @HttpCode(200)
+  async generateOnboardingQuestions(
+    @Headers('x-user-id') userId: string | undefined,
+    @Headers('x-correlation-id') correlationId: string | undefined,
+    @Body() body: SkillQueryDto
+  ) {
+    const uid = this.checkUserId(userId);
+    return this.aiService.generateOnboardingQuestions(uid, body.skillName, correlationId);
+  }
 }

@@ -3,8 +3,18 @@ import { AppModule } from './app.module';
 import { OdosLogger } from '@odos/logger';
 import { validateEnv, CommonEnvSchema } from '@odos/validation';
 import { ValidationPipe } from '@nestjs/common';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
 
 async function bootstrap() {
+  const rootEnvPath = path.resolve(__dirname, '../../../.env');
+  if (fs.existsSync(rootEnvPath)) {
+    dotenv.config({ path: rootEnvPath });
+  } else {
+    dotenv.config();
+  }
+
   // Validate configuration variables
   validateEnv(CommonEnvSchema, process.env);
 
@@ -20,7 +30,7 @@ async function bootstrap() {
   // Internal microservice CORS restriction (Gateway handles public CORS)
   app.enableCors({ origin: false });
 
-  const port = process.env.PORT || process.env.AI_SERVICE_PORT || 4005;
+  const port = process.env.AI_SERVICE_PORT || 4005;
   await app.listen(port);
   logger.log(`Running on http://localhost:${port}`);
 }

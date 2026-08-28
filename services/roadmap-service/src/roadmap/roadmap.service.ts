@@ -19,15 +19,16 @@ export class RoadmapService {
     private readonly aiClientService: AiClientService,
   ) {}
 
-  async generateRoadmap(userId: string, prompt: string, correlationId?: string): Promise<Roadmap> {
+  async generateRoadmap(userId: string, prompt: string, learningGoalId: string, correlationId?: string): Promise<Roadmap> {
     const traceId = correlationId || crypto.randomUUID();
     
     // 1. Fetch AI response
     const aiResponse = await this.aiClientService.generateRoadmap(userId, prompt, traceId);
 
-    // 2. Create Roadmap entity
+    // 2. Create Roadmap entity linked to the canonical LearningGoal
     const roadmap = this.roadmapRepo.create({
       userId,
+      learningGoalId,
       originalPrompt: prompt,
       targetSkill: aiResponse.skill,
       type: RoadmapType.BASELINE,
@@ -151,5 +152,20 @@ export class RoadmapService {
     }
 
     return this.getRoadmapById(userId, baselineRoadmap.id);
+  }
+
+  /**
+   * Fetches the roadmap associated with a specific LearningGoal.
+   * Returns the full hydrated roadmap with modules, skills, and prerequisites.
+   */
+  async getRoadmapByGoal(userId: string, learningGoalId: string): Promise<any> {
+    const roadmap = await this.roadmapRepo.findOne({ 
+      where: { learningGoalId, userId },
+      order: { createdAt: 'DESC' }
+    });
+    if (!roadmap) {
+      throw new NotFoundException(`No roadmap found for learning goal ${learningGoalId}`);
+    }
+    return this.getRoadmapById(userId, roadmap.id);
   }
 }

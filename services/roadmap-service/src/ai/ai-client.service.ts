@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { z } from 'zod';
@@ -57,8 +61,18 @@ export class AiClientService {
       return parsed.data;
     } catch (error: any) {
       if (error.response) {
+        const providerError = JSON.stringify(error.response.data);
+        if (
+          error.response.status === 429 ||
+          providerError.includes('RESOURCE_EXHAUSTED') ||
+          providerError.includes('quota')
+        ) {
+          throw new ServiceUnavailableException(
+            'The configured AI provider has reached its request quota. Add billing or a provider key with available quota, then try again.',
+          );
+        }
         throw new InternalServerErrorException(
-          `AI Service failed with status ${error.response.status}: ${JSON.stringify(error.response.data)}`,
+          `AI Service failed with status ${error.response.status}: ${providerError}`,
         );
       }
       throw new InternalServerErrorException(`Failed to communicate with AI Service: ${error.message}`);

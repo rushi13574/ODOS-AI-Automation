@@ -6,14 +6,15 @@ import type { Request } from 'express';
 @Injectable()
 export class RoadmapServiceClient extends BaseServiceClient {
   protected readonly logger = new Logger(RoadmapServiceClient.name);
-  protected readonly baseUrl = process.env.ROADMAP_SERVICE_URL || 'http://localhost:4003';
+  protected readonly baseUrl =
+    process.env.ROADMAP_SERVICE_URL || 'http://localhost:4003';
 
   constructor(httpService: HttpService) {
     super(httpService);
   }
 
   async generateRoadmap(data: any, req: Request) {
-    return this.post('/roadmaps/generate', data, req);
+    return this.post('/roadmaps/generate', data, req, { timeout: 90000 });
   }
 
   async getRoadmap(id: string, req: Request) {

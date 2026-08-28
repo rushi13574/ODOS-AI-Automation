@@ -17,9 +17,9 @@ export interface Preferences {
 }
 
 export interface AIPreferences {
-  provider: string;
-  model: string;
-  encryptedApiKey: string;
+  provider: string | null;
+  model: string | null;
+  encryptedApiKey: string | null;
   configurationStatus: string;
 }
 

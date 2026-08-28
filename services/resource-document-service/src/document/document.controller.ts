@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Headers, UnauthorizedException, HttpCode } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Headers, Query, UnauthorizedException, HttpCode } from '@nestjs/common';
 import { DocumentGeneratorService, GenerateDocumentDto } from './document-generator.service';
 
 @Controller('documents')
@@ -26,9 +26,12 @@ export class DocumentController {
   }
 
   @Get()
-  async getUserDocuments(@Headers('x-user-id') userId: string | undefined) {
+  async getUserDocuments(
+    @Headers('x-user-id') userId: string | undefined,
+    @Query('skillId') skillId?: string
+  ) {
     const uid = this.checkUserId(userId);
-    return this.documentService.getUserDocuments(uid);
+    return this.documentService.getUserDocuments(uid, skillId);
   }
 
   @Get(':id')

@@ -1,13 +1,16 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
+import { toScheduleDay, todayScheduleDay } from '@/lib/schedule-date';
 
 export interface CalendarTask {
   id: string;
+  skillNodeId: string;
   title: string;
   module: string;
   date: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'paused';
+  status: 'pending' | 'in_progress' | 'completed' | 'paused' | 'overdue';
+  estimatedMinutes: number;
 }
 
 export interface CalendarSummaryMetrics {
@@ -40,57 +43,136 @@ export function useCalendar(roadmapId?: string) {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!roadmapId) return;
+    if (!roadmapId) {
+      setLoading(false);
+      return;
+    }
+    let isMounted = true;
     const fetchCalendar = async () => {
       try {
         setLoading(true);
-        // Note: The API Gateway will hit the Scheduler Service to orchestrate this payload.
-        // We mock it temporarily while the backend is pending.
-        const res = await apiClient.get(`/schedule/calendar/${roadmapId}`);
-        
-        if (res.data && res.data.summary) {
-           setData(res.data);
-        } else {
-           // Mock Data Generation for Frontend testing
-           const today = new Date();
-           const d = (days: number) => {
-             const dt = new Date(today);
-             dt.setDate(dt.getDate() + days);
-             return dt.toISOString().split('T')[0];
-           };
+        let scheduleData: any = {};
+        let roadmapData: any = {};
 
-           const mockData: CalendarData = {
-             summary: {
-               originalCompletionDate: d(30),
-               currentProjectedDate: d(32),
-               totalDelayDays: 2
-             },
-             baseline: [
-               { id: '1', title: 'Intro to Next.js', module: 'Fundamentals', date: d(0), status: 'pending' },
-               { id: '2', title: 'Routing', module: 'Fundamentals', date: d(1), status: 'pending' },
-               { id: '3', title: 'Server Components', module: 'Advanced', date: d(2), status: 'pending' },
-             ],
-             current: [
-               { id: '1', title: 'Intro to Next.js', module: 'Fundamentals', date: d(0), status: 'completed' },
-               { id: '2', title: 'Routing', module: 'Fundamentals', date: d(2), status: 'pending' }, // delayed 1 day
-               { id: '3', title: 'Server Components', module: 'Advanced', date: d(4), status: 'pending' }, // delayed 2 days
-             ],
-             comparison: [
-               { taskId: '1', taskTitle: 'Intro to Next.js', module: 'Fundamentals', baselineDate: d(0), currentDate: d(0), actualCompletionDate: d(0), differenceDays: 0 },
-               { taskId: '2', taskTitle: 'Routing', module: 'Fundamentals', baselineDate: d(1), currentDate: d(2), differenceDays: 1 },
-               { taskId: '3', taskTitle: 'Server Components', module: 'Advanced', baselineDate: d(2), currentDate: d(4), differenceDays: 2 },
-             ]
-           };
-           setData(mockData);
+        console.log(`[CALENDAR DEBUG] roadmapId = ${roadmapId}`);
+        
+        try {
+          const scheduleRes = await apiClient.get(`/schedule/current?roadmapId=${roadmapId}`);
+          scheduleData = scheduleRes.data;
+          console.log('[CALENDAR DEBUG] schedule = SUCCESS 200');
+        } catch (e: any) {
+          if (e?.response?.status === 404) {
+            console.log(`[CALENDAR DEBUG] schedule = 404 Not Found (empty state)`);
+          } else {
+            console.log(`[CALENDAR DEBUG] schedule = ERROR ${e?.response?.status} ${e?.message}`);
+            throw e;
+          }
+        }
+
+        try {
+          // Fetch canonical roadmap to get modules and skill nodes
+          const roadmapRes = await apiClient.get(`/roadmaps/by-goal/${roadmapId}`);
+          roadmapData = roadmapRes.data;
+          console.log('[CALENDAR DEBUG] roadmap = SUCCESS 200');
+        } catch (e: any) {
+          if (e?.response?.status === 404) {
+            console.log(`[CALENDAR DEBUG] roadmap = 404 Not Found (empty state)`);
+          } else {
+            console.log(`[CALENDAR DEBUG] roadmap = ERROR ${e?.response?.status} ${e?.message}`);
+            throw e;
+          }
+        }
+        
+        // Build a map for skill titles, modules, and estimated duration
+        const skillMap = new Map<string, any>();
+        if (roadmapData?.modules) {
+          roadmapData.modules.forEach((m: any) => {
+            if (m.skills) {
+              m.skills.forEach((s: any) => {
+                skillMap.set(s.id, {
+                  title: s.title,
+                  module: m.title,
+                  estimatedMinutes: s.estimatedMinutes || 30
+                });
+              });
+            }
+          });
+        }
+
+        const tasks = scheduleData.tasks || [];
+        
+        const summary: CalendarSummaryMetrics = {
+          originalCompletionDate: toScheduleDay(scheduleData.baselineCompletionDate) || todayScheduleDay(),
+          currentProjectedDate: toScheduleDay(scheduleData.currentProjectedCompletionDate) || todayScheduleDay(),
+          totalDelayDays: scheduleData.delayDays || 0,
+        };
+
+        const baseline: CalendarTask[] = [];
+        const current: CalendarTask[] = [];
+        const comparison: ComparisonRow[] = [];
+
+        tasks.forEach((t: any) => {
+          const skill = skillMap.get(t.skillNodeId);
+          const title = skill?.title || 'Unknown Task';
+          const module = skill?.module || 'Unknown Module';
+          const estimatedMinutes = t.estimatedMinutes || skill?.estimatedMinutes || 30;
+          const status = t.isCompleted ? 'completed' : t.isOverdue ? 'overdue' : 'pending';
+          const bDate = toScheduleDay(t.baselineDate);
+          const cDate = toScheduleDay(t.currentDate);
+          const aDate = toScheduleDay(t.actualCompletionDate);
+
+          baseline.push({ 
+            id: t.id, 
+            skillNodeId: t.skillNodeId,
+            title, 
+            module, 
+            date: bDate, 
+            status,
+            estimatedMinutes
+          });
+          current.push({ 
+            id: t.id, 
+            skillNodeId: t.skillNodeId,
+            title, 
+            module, 
+            date: cDate, 
+            status,
+            estimatedMinutes
+          });
+          
+          const baselineDay = new Date(`${bDate}T12:00:00`);
+          const currentDay = new Date(`${cDate}T12:00:00`);
+          const differenceDays = Math.round((currentDay.getTime() - baselineDay.getTime()) / (1000 * 3600 * 24));
+
+          comparison.push({
+            taskId: t.id,
+            taskTitle: title,
+            module,
+            baselineDate: bDate,
+            currentDate: cDate,
+            actualCompletionDate: aDate,
+            differenceDays
+          });
+        });
+
+        if (isMounted) {
+          setData({ summary, baseline, current, comparison });
+          setError(null);
         }
       } catch (err: any) {
-        // Fallback to mock on error for UI dev
-        setError(err);
+        console.error('Failed to load calendar:', err);
+        if (isMounted) {
+          setError(err);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchCalendar();
+    
+    return () => { isMounted = false; };
   }, [roadmapId]);
 
   return { data, loading, error };

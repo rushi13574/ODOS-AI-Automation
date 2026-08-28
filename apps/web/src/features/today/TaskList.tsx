@@ -12,15 +12,18 @@ interface TaskListProps {
   onPartialComplete: (id: string, mins: number) => void;
 }
 
+import { EmptyState } from '@/components/ui/EmptyState';
+import { CalendarDays } from 'lucide-react';
+
 export function TaskList({ todayTasks, overdueTasks, onStart, onPause, onComplete, onPartialComplete }: TaskListProps) {
   return (
     <div className="space-y-8">
       {overdueTasks.length > 0 && (
         <section>
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
+          <h2 className="text-xl font-bold text-[var(--color-foreground)] mb-4 flex items-center">
+            <span className="w-2 h-2 rounded-full bg-[var(--color-destructive)] mr-2 shadow-sm"></span>
             Overdue Tasks
-            <span className="ml-2 text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{overdueTasks.length}</span>
+            <span className="ml-3 text-sm font-medium text-[var(--color-muted-foreground)] bg-[var(--color-secondary)] px-2.5 py-0.5 rounded-full">{overdueTasks.length}</span>
           </h2>
           <div className="space-y-4">
             {overdueTasks.map(task => (
@@ -38,16 +41,18 @@ export function TaskList({ todayTasks, overdueTasks, onStart, onPause, onComplet
       )}
 
       <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+        <h2 className="text-xl font-bold text-[var(--color-foreground)] mb-4 flex items-center">
+          <span className="w-2 h-2 rounded-full bg-[var(--color-primary)] mr-2 shadow-sm"></span>
           Today's Plan
-          <span className="ml-2 text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{todayTasks.length}</span>
+          <span className="ml-3 text-sm font-medium text-[var(--color-muted-foreground)] bg-[var(--color-secondary)] px-2.5 py-0.5 rounded-full">{todayTasks.length}</span>
         </h2>
         
         {todayTasks.length === 0 ? (
-          <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">
-            No tasks scheduled for today. Take a break or jump ahead in the calendar!
-          </div>
+          <EmptyState 
+            icon={<CalendarDays />}
+            title="All caught up!"
+            description="No tasks scheduled for today. Take a break or jump ahead in the calendar to start tomorrow's tasks early."
+          />
         ) : (
           <div className="space-y-4">
             {todayTasks.map(task => (

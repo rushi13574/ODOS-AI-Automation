@@ -7,7 +7,7 @@ import { TaskInput } from './dependency-resolver.service';
 import { SchedulingEngine } from './scheduling-engine.service';
 import { Rescheduler } from './rescheduler.service';
 import { CalendarComparator } from './calendar-comparator.service';
-import { startOfDay } from 'date-fns';
+import { applicationToday, scheduleDay } from './schedule-date';
 
 @Injectable()
 export class SchedulerService {
@@ -30,7 +30,7 @@ export class SchedulerService {
       config = await this.scheduleConfigRepo.save(config);
     }
 
-    const today = startOfDay(new Date());
+    const today = applicationToday();
     
     // Engine generates deterministic dates based on inputs
     const scheduleResults = this.schedulingEngine.generateSchedule(tasks, today, config.dailyCapacityMinutes);
@@ -43,6 +43,7 @@ export class SchedulerService {
       userId,
       skillNodeId: r.skillNodeId,
       estimatedMinutes: r.estimatedMinutes,
+      prerequisiteSkillNodeIds: tasks.find((task) => task.skillNodeId === r.skillNodeId)?.prerequisites || [],
       baselineDate: r.assignedDate,
       currentDate: r.assignedDate, // Initially, current = baseline
       isCompleted: false,
@@ -52,6 +53,7 @@ export class SchedulerService {
   }
 
   async getCurrentSchedule(userId: string, roadmapId: string): Promise<any> {
+    await this.rollOverMissedTasks(userId, roadmapId);
     const tasks = await this.scheduledTaskRepo.find({ where: { userId, roadmapId } });
     const comparison = this.calendarComparator.compare(tasks);
 
@@ -62,15 +64,49 @@ export class SchedulerService {
   }
 
   async getTodayTasks(userId: string, roadmapId: string): Promise<ScheduledTask[]> {
-    const today = startOfDay(new Date());
-    return this.scheduledTaskRepo.find({ 
-      where: {
-        userId, 
-        roadmapId, 
-        currentDate: today, 
-        isCompleted: false 
-      }
+    await this.rollOverMissedTasks(userId, roadmapId);
+    const today = scheduleDay(applicationToday());
+    const tasks = await this.scheduledTaskRepo.find({ where: { userId, roadmapId, isCompleted: false } });
+    return tasks.filter((task) => scheduleDay(new Date(task.currentDate)) === today);
+  }
+
+  /**
+   * Move unfinished work forward without replacing canonical rows. BaselineDate
+   * remains the historical plan; CurrentDate becomes the effective learning day.
+   */
+  private async rollOverMissedTasks(userId: string, roadmapId: string): Promise<void> {
+    const tasks = await this.scheduledTaskRepo.find({ where: { userId, roadmapId } });
+    const today = applicationToday();
+    const todayDay = scheduleDay(today);
+    const overdueIds = new Set(
+      tasks
+        .filter((task) => !task.isCompleted && scheduleDay(new Date(task.currentDate)) < todayDay)
+        .map((task) => task.id),
+    );
+
+    if (overdueIds.size === 0) return;
+
+    const inputs: TaskInput[] = tasks
+      .filter((task) => !task.isCompleted)
+      .map((task) => ({
+        skillNodeId: task.skillNodeId,
+        estimatedMinutes: task.estimatedMinutes,
+        prerequisites: task.prerequisiteSkillNodeIds || [],
+      }));
+    const config = await this.scheduleConfigRepo.findOne({ where: { userId } });
+    const rescheduled = this.rescheduler.recalculateCurrentSchedule(
+      tasks,
+      inputs,
+      config?.dailyCapacityMinutes || 60,
+    );
+    const dates = new Map(rescheduled.map((item) => [item.skillNodeId, item.newCurrentDate]));
+
+    tasks.forEach((task) => {
+      const nextDate = dates.get(task.skillNodeId);
+      if (nextDate) task.currentDate = nextDate;
+      if (overdueIds.has(task.id)) task.isOverdue = true;
     });
+    await this.scheduledTaskRepo.save(tasks);
   }
 
   /**

@@ -5,6 +5,17 @@ import { ProviderConfig } from './provider-config.interface';
 import { z } from 'zod';
 
 // Zod schemas for response validation
+export const OnboardingQuestionSchema = z.object({
+  id: z.string(),
+  question: z.string(),
+  type: z.string(),
+  options: z.array(z.string()),
+});
+
+export const OnboardingQuestionsResponseSchema = z.object({
+  skillCategory: z.string(),
+  questions: z.array(OnboardingQuestionSchema),
+});
 export const SkillSchema = z.object({
   title: z.string(),
   description: z.string(),
@@ -85,7 +96,7 @@ export class GeminiProvider implements AIProvider {
 
   async generateRoadmap(prompt: string, config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -160,7 +171,7 @@ export class GeminiProvider implements AIProvider {
 
   async explainSkill(skillName: string, config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -198,7 +209,7 @@ export class GeminiProvider implements AIProvider {
 
   async generateQuiz(skillName: string, config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -246,7 +257,7 @@ export class GeminiProvider implements AIProvider {
 
   async generateDocument(skillName: string, config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -284,7 +295,7 @@ export class GeminiProvider implements AIProvider {
 
   async chat(messages: any[], config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -326,7 +337,7 @@ export class GeminiProvider implements AIProvider {
 
   async analyzeProgress(progressData: any, config: ProviderConfig): Promise<any> {
     const ai = this.getClient(config.apiKey || '');
-    const model = config.model || 'gemini-1.5-pro';
+    const model = config.model as string;
 
     const systemInstruction = `
       ${BASE_SYSTEM_INSTRUCTION}
@@ -359,6 +370,75 @@ export class GeminiProvider implements AIProvider {
     if (!validated.success) {
       throw new Error(`Gemini response validation failed: ${validated.error.message}`);
     }
+    return validated.data;
+  }
+
+  async generateOnboardingQuestions(skillName: string, config: ProviderConfig): Promise<any> {
+    const ai = this.getClient(config.apiKey || '');
+    const model = config.model as string;
+
+    const systemInstruction = `
+      ${BASE_SYSTEM_INSTRUCTION}
+      You are an expert learning advisor. 
+      Generate exactly 2 to 3 multiple-choice onboarding questions to deeply understand WHY and HOW the user wants to learn the given skill.
+      CRITICAL REQUIREMENT: Understand the domain of the skill first. 
+      If the skill is a spoken language (e.g. Hindi, Spanish), ask about conversation, travel, or exams. DO NOT ask about "building projects", "coding", or "deployment".
+      If the skill is photography, ask about portrait, street, or camera types.
+      If the skill is cooking, ask about daily meals, baking, or specific cuisines.
+      Only ask technical/developer-oriented questions if the skill is actually technical (e.g. React, Python).
+      Ensure the questions are concise and provide 4-6 predefined options for the user to select.
+    `;
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        skillCategory: { type: Type.STRING },
+        questions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              question: { type: Type.STRING },
+              type: { type: Type.STRING }, // 'single_select' or 'multi_select'
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ['id', 'question', 'type', 'options'],
+          },
+        },
+      },
+      required: ['skillCategory', 'questions'],
+    };
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: `Generate personalized onboarding questions for a user who wants to learn: ${skillName}`,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+      },
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    const validated = OnboardingQuestionsResponseSchema.safeParse(parsed);
+    if (!validated.success) {
+      throw new Error(`Gemini response validation failed: ${validated.error.message}`);
+    }
+    
+    // Normalize type aliases
+    validated.data.questions = validated.data.questions.map(q => {
+      let normalizedType = 'single_select';
+      const t = q.type.toLowerCase();
+      if (t === 'multi_select' || t === 'multiple_choice' || t === 'multiple_select') {
+        normalizedType = 'multi_select';
+      }
+      return {
+        ...q,
+        type: normalizedType,
+      };
+    });
+
     return validated.data;
   }
 }

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { startOfDay } from 'date-fns';
 import { SchedulingEngine } from './scheduling-engine.service';
 import { TaskInput } from './dependency-resolver.service';
 import { ScheduledTask } from '../entities/scheduled-task.entity';
+import { applicationToday } from './schedule-date';
 
 @Injectable()
 export class Rescheduler {
@@ -17,7 +17,7 @@ export class Rescheduler {
     taskInputs: TaskInput[],
     dailyCapacityMinutes: number,
   ): { skillNodeId: string; newCurrentDate: Date }[] {
-    const now = startOfDay(new Date());
+    const now = applicationToday();
 
     // 1. Filter incomplete tasks
     const incompleteTasks = tasks.filter(t => !t.isCompleted);

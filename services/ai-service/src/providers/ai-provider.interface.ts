@@ -7,4 +7,5 @@ export interface AIProvider {
   generateDocument(skillName: string, config: ProviderConfig): Promise<any>;
   chat(messages: any[], config: ProviderConfig): Promise<any>;
   analyzeProgress(progressData: any, config: ProviderConfig): Promise<any>;
+  generateOnboardingQuestions(skillName: string, config: ProviderConfig): Promise<any>;
 }

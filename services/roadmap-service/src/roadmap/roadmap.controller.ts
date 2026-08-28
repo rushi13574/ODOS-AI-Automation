@@ -6,6 +6,10 @@ export class GenerateRoadmapDto {
   @IsString()
   @IsNotEmpty()
   prompt!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  learningGoalId!: string;
 }
 
 @Controller('roadmaps')
@@ -27,7 +31,7 @@ export class RoadmapController {
     @Body() body: GenerateRoadmapDto,
   ) {
     const uid = this.checkUserId(userId);
-    return this.roadmapService.generateRoadmap(uid, body.prompt, correlationId);
+    return this.roadmapService.generateRoadmap(uid, body.prompt, body.learningGoalId, correlationId);
   }
 
   @Get(':id')
@@ -37,6 +41,15 @@ export class RoadmapController {
   ) {
     const uid = this.checkUserId(userId);
     return this.roadmapService.getRoadmapById(uid, id);
+  }
+
+  @Get('by-goal/:learningGoalId')
+  async getRoadmapByGoal(
+    @Headers('x-user-id') userId: string | undefined,
+    @Param('learningGoalId') learningGoalId: string
+  ) {
+    const uid = this.checkUserId(userId);
+    return this.roadmapService.getRoadmapByGoal(uid, learningGoalId);
   }
 
   @Get(':id/baseline')

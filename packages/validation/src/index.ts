@@ -10,8 +10,14 @@ export const GatewayEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().positive().default(4000),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
-  SUPABASE_URL: z.string().url().default('https://placeholder.supabase.co'),
+  SUPABASE_URL: z.string().url(),
   SUPABASE_PUBLISHABLE_KEY: z.string().default('placeholder-key'),
+  USER_SERVICE_URL: z.string().url().default('http://localhost:4001'),
+  LEARNING_SERVICE_URL: z.string().url().default('http://localhost:4002'),
+  ROADMAP_SERVICE_URL: z.string().url().default('http://localhost:4003'),
+  SCHEDULER_SERVICE_URL: z.string().url().default('http://localhost:4004'),
+  AI_SERVICE_URL: z.string().url().default('http://localhost:4005'),
+  RESOURCE_DOCUMENT_SERVICE_URL: z.string().url().default('http://localhost:4006'),
 });
 
 export function validateEnv<T>(schema: z.ZodSchema<T>, env: unknown): T {

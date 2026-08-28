@@ -6,7 +6,8 @@ import type { Request } from 'express';
 @Injectable()
 export class LearningServiceClient extends BaseServiceClient {
   protected readonly logger = new Logger(LearningServiceClient.name);
-  protected readonly baseUrl = process.env.LEARNING_SERVICE_URL || 'http://localhost:4002';
+  protected readonly baseUrl =
+    process.env.LEARNING_SERVICE_URL || 'http://localhost:4002';
 
   constructor(httpService: HttpService) {
     super(httpService);

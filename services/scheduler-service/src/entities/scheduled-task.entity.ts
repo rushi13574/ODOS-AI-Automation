@@ -18,6 +18,9 @@ export class ScheduledTask {
   @Column()
   estimatedMinutes!: number;
 
+  @Column({ type: 'simple-array', default: '' })
+  prerequisiteSkillNodeIds!: string[];
+
   @Column({ type: 'timestamp' })
   baselineDate!: Date;
 
@@ -29,6 +32,9 @@ export class ScheduledTask {
 
   @Column({ default: false })
   isCompleted!: boolean;
+
+  @Column({ default: false })
+  isOverdue!: boolean;
 
   @CreateDateColumn()
   createdAt!: Date;

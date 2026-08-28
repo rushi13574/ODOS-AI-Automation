@@ -24,10 +24,12 @@ import { HealthController } from './controllers/health.controller';
 @Module({
   imports: [
     HttpModule,
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100, // 100 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100, // 100 requests per minute
+      },
+    ]),
   ],
   controllers: [
     AuthController,
@@ -58,4 +60,3 @@ export class AppModule {
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
-

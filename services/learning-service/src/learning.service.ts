@@ -44,59 +44,7 @@ export class LearningService {
       learningStyle: dto.learningStyle || 'visual',
       status: 'active',
     });
-    const savedGoal = await this.goalRepo.save(goal);
-    const goalId = savedGoal.id;
-
-    // Seed mock skill nodes to test skills graph & task updates
-    const node1 = this.nodeRepo.create({
-      learningGoalId: goalId,
-      title: `Introduction to ${dto.skillName}`,
-      description: `Basic fundamentals and key terms of ${dto.skillName}.`,
-      difficulty: 'easy',
-      estimatedMinutes: 45,
-      type: 'learning',
-      sequence: 1,
-    });
-    const savedNode1 = await this.nodeRepo.save(node1);
-
-    const node2 = this.nodeRepo.create({
-      learningGoalId: goalId,
-      title: `Practical exercises in ${dto.skillName}`,
-      description: `Hands-on training and practice labs for ${dto.skillName}.`,
-      difficulty: 'medium',
-      estimatedMinutes: 60,
-      type: 'practice',
-      sequence: 2,
-    });
-    const savedNode2 = await this.nodeRepo.save(node2);
-
-    const node3 = this.nodeRepo.create({
-      learningGoalId: goalId,
-      title: `${dto.skillName} Final Assessment`,
-      description: `Knowledge evaluation of ${dto.skillName} skills.`,
-      difficulty: 'hard',
-      estimatedMinutes: 30,
-      type: 'assessment',
-      sequence: 3,
-    });
-    const savedNode3 = await this.nodeRepo.save(node3);
-
-    // Seed mock dependencies
-    const dep1 = this.dependencyRepo.create({
-      learningGoalId: goalId,
-      fromSkillId: savedNode1.id,
-      toSkillId: savedNode2.id,
-    });
-    await this.dependencyRepo.save(dep1);
-
-    const dep2 = this.dependencyRepo.create({
-      learningGoalId: goalId,
-      fromSkillId: savedNode2.id,
-      toSkillId: savedNode3.id,
-    });
-    await this.dependencyRepo.save(dep2);
-
-    return savedGoal;
+    return this.goalRepo.save(goal);
   }
 
   async getGoals(userId: string): Promise<LearningGoal[]> {
@@ -129,15 +77,22 @@ export class LearningService {
   async deleteGoal(userId: string, goalId: string) {
     await this.getAndVerifyGoal(goalId, userId);
 
-    // Delete associated resources
-    await this.goalRepo.delete({ id: goalId });
+    // Delete progress records owned by this service
+    await this.progressRepo.delete({ learningGoalId: goalId });
+    // Clean up any legacy mock nodes (safe no-op if table is empty)
     await this.nodeRepo.delete({ learningGoalId: goalId });
     await this.dependencyRepo.delete({ learningGoalId: goalId });
-    await this.progressRepo.delete({ learningGoalId: goalId });
+    // Delete the goal itself
+    await this.goalRepo.delete({ id: goalId });
 
     return { success: true, message: `Learning goal ${goalId} and all associated items deleted` };
   }
 
+  /**
+   * @deprecated Curriculum nodes now live in roadmap-service.
+   * This endpoint returns legacy mock nodes for backward compatibility.
+   * Frontend should use roadmap-service's GET /roadmaps/by-goal/:id instead.
+   */
   async getSkills(userId: string, goalId: string) {
     await this.getAndVerifyGoal(goalId, userId);
 
@@ -158,20 +113,14 @@ export class LearningService {
   }
 
   async updateTaskProgress(userId: string, taskId: string, dto: UpdateTaskProgressDto): Promise<TaskProgress> {
-    // 1. Locate the target node
-    const node = await this.nodeRepo.findOne({ where: { id: taskId } });
-    if (!node) {
-      throw new NotFoundException(`Task/SkillNode ${taskId} not found`);
-    }
+    // 1. Verify caller ownership on the learning goal
+    await this.getAndVerifyGoal(dto.learningGoalId, userId);
 
-    // 2. Verify caller ownership on parent goal
-    await this.getAndVerifyGoal(node.learningGoalId, userId);
-
-    // 3. Upsert task progress
+    // 2. Upsert task progress
     let progress = await this.progressRepo.findOne({ where: { taskId } });
     if (!progress) {
       progress = this.progressRepo.create({
-        learningGoalId: node.learningGoalId,
+        learningGoalId: dto.learningGoalId,
         taskId,
       });
     }

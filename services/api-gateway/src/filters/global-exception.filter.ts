@@ -1,4 +1,12 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 export interface ApiErrorResponse {
@@ -16,7 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    
+
     const correlationId = (request as any)['correlationId'] || 'unknown';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -25,7 +33,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
-      message = typeof res === 'string' ? res : (res as any).message || exception.message;
+      message =
+        typeof res === 'string'
+          ? res
+          : (res as any).message || exception.message;
     } else if (exception.isAxiosError) {
       status = exception.response?.status || HttpStatus.BAD_GATEWAY;
       message = exception.response?.data?.message || 'Downstream service error';
@@ -41,9 +52,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(`[${correlationId}] ${request.method} ${request.url} - ${status}: ${message}`, exception.stack);
+      this.logger.error(
+        `[${correlationId}] ${request.method} ${request.url} - ${status}: ${message}`,
+        exception.stack,
+      );
     } else {
-      this.logger.warn(`[${correlationId}] ${request.method} ${request.url} - ${status}: ${message}`);
+      this.logger.warn(
+        `[${correlationId}] ${request.method} ${request.url} - ${status}: ${message}`,
+      );
     }
 
     response.status(status).json(errorResponse);

@@ -11,16 +11,17 @@ interface Props {
 }
 
 export function AIProviderForm({ config, onSave, onTest, onRemove }: Props) {
-  const [provider, setProvider] = useState(config?.provider || 'Gemini');
-  const [model, setModel] = useState(config?.model || 'gemini-1.5-pro');
+  const [provider, setProvider] = useState(config?.provider || config?.systemProvider || 'Gemini');
+  const [model, setModel] = useState(config?.model || config?.systemModel || 'gemini-3.6-flash');
   const [apiKey, setApiKey] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
 
   const providerModels: Record<string, string[]> = {
-    'Gemini': ['gemini-1.5-pro', 'gemini-1.5-flash'],
+    'Gemini': ['gemini-3.6-flash', 'gemini-3.7-flash'],
     'Grok': ['grok-1', 'grok-1.5'],
     'Claude': ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
     'OpenAI': ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
@@ -76,7 +77,11 @@ export function AIProviderForm({ config, onSave, onTest, onRemove }: Props) {
         </h2>
         {config?.isConfigured ? (
           <span className="flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 uppercase tracking-wider">
-            <CheckCircle className="w-3 h-3 mr-1" /> Active
+            <CheckCircle className="w-3 h-3 mr-1" /> Active (Custom)
+          </span>
+        ) : config?.hasSystemDefault ? (
+          <span className="flex items-center text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200 uppercase tracking-wider">
+            <CheckCircle className="w-3 h-3 mr-1" /> ODOS AI Ready
           </span>
         ) : (
           <span className="flex items-center text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 uppercase tracking-wider">
@@ -85,15 +90,38 @@ export function AIProviderForm({ config, onSave, onTest, onRemove }: Props) {
         )}
       </div>
 
-      <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start mb-6">
-        <ShieldAlert className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-800">
-          <p className="font-semibold mb-1">Security Guarantee</p>
-          <p>Your API key is transmitted securely to our backend and is never stored in your browser, never logged, and never returned to the frontend. Changing your provider only affects future requests—your existing roadmaps and progress remain strictly unaffected.</p>
+      {!config?.isConfigured && config?.hasSystemDefault && (
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-start mb-6">
+          <ShieldAlert className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-800">
+            <p className="font-semibold mb-1">Using ODOS System Default</p>
+            <p>You do not need to configure an API key. ODOS AI is ready to use automatically.</p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      {config?.isConfigured && (
+        <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg flex items-start mb-6">
+          <ShieldAlert className="w-5 h-5 text-emerald-600 mr-3 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-emerald-800">
+            <p className="font-semibold mb-1">Custom Provider Active</p>
+            <p>Your custom API key is overriding the ODOS system default. Remove it to fallback to ODOS AI.</p>
+          </div>
+        </div>
+      )}
+
+      <button 
+        className="text-sm font-medium text-gray-500 hover:text-gray-700 mb-6 flex items-center transition-colors"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+      >
+        {showAdvanced ? 'Hide Advanced Settings' : 'Advanced: Use Custom AI Provider'}
+      </button>
+
+      {showAdvanced && (
+        <div className="border border-gray-200 rounded-lg p-5 bg-gray-50 mb-6">
+          <h3 className="text-sm font-bold text-gray-800 mb-4">Custom AI Provider Override</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">AI Provider</label>
           <select 
@@ -183,6 +211,8 @@ export function AIProviderForm({ config, onSave, onTest, onRemove }: Props) {
           </button>
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }

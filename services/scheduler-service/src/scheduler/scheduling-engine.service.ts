@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { format, parseISO, addDays } from 'date-fns';
+
 import { CapacityCalculator } from './capacity-calculator.service';
 import { DependencyResolver, TaskInput } from './dependency-resolver.service';
+import { nextScheduleDay, scheduleDateFromKey, scheduleDay } from './schedule-date';
 
 export interface ScheduledTaskResult {
   skillNodeId: string;
@@ -36,7 +37,7 @@ export class SchedulingEngine {
 
     for (const task of sortedTasks) {
       // Find the earliest possible start date for this task based on prerequisites
-      let earliestStartDateStr = format(startDate, 'yyyy-MM-dd');
+      let earliestStartDateStr = scheduleDay(startDate);
       
       for (const prereq of task.prerequisites) {
         const prereqDateStr = completionDateMap.get(prereq);
@@ -46,16 +47,16 @@ export class SchedulingEngine {
       }
 
       // Fast forward currentDate to the earliest possible start date if it's behind
-      if (format(currentDate, 'yyyy-MM-dd') < earliestStartDateStr) {
-        currentDate = parseISO(earliestStartDateStr);
+      if (scheduleDay(currentDate) < earliestStartDateStr) {
+        currentDate = scheduleDateFromKey(earliestStartDateStr);
       }
 
       let remainingMinutes = task.estimatedMinutes;
-      let taskAssignedDateStr = format(currentDate, 'yyyy-MM-dd');
+      let taskAssignedDateStr = scheduleDay(currentDate);
 
       // Schedule the task across days if it exceeds daily capacity
       while (remainingMinutes > 0) {
-        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        const dateStr = scheduleDay(currentDate);
         const available = buckets.get(dateStr) || 0;
 
         if (available > 0) {
@@ -76,15 +77,15 @@ export class SchedulingEngine {
         }
 
         if (remainingMinutes > 0) {
-          currentDate = addDays(currentDate, 1);
+          currentDate = nextScheduleDay(currentDate);
         }
       }
 
-      completionDateMap.set(task.skillNodeId, format(currentDate, 'yyyy-MM-dd'));
+      completionDateMap.set(task.skillNodeId, scheduleDay(currentDate));
       
       results.push({
         skillNodeId: task.skillNodeId,
-        assignedDate: parseISO(taskAssignedDateStr), // Start date of task
+        assignedDate: scheduleDateFromKey(taskAssignedDateStr),
         estimatedMinutes: task.estimatedMinutes,
       });
     }

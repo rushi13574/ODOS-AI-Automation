@@ -27,32 +27,44 @@ export class AIService {
         }),
       ]);
 
-      const provider = providerRes.data.provider;
-      const model = providerRes.data.model;
+      let provider = providerRes.data.provider;
+      let model = providerRes.data.model;
+      const configurationStatus = providerRes.data.configurationStatus;
       let apiKey = keyRes.data.apiKey;
 
-      if (!apiKey) {
+      if (configurationStatus !== 'configured' && configurationStatus !== 'active') {
+        provider = process.env.DEFAULT_AI_PROVIDER || 'gemini';
         this.logger.log(`[${correlationId}] No user API key found. Falling back to system default for ${provider}`);
+        
         switch (provider) {
           case 'gemini':
-            apiKey = process.env.DEFAULT_GEMINI_API_KEY;
+            model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+            apiKey = process.env.GEMINI_API_KEY || process.env.DEFAULT_GEMINI_API_KEY;
             break;
           case 'grok':
+            model = process.env.GROK_MODEL || 'grok-1';
             apiKey = process.env.DEFAULT_GROK_API_KEY;
             break;
           case 'claude':
+            model = process.env.CLAUDE_MODEL || 'claude-3-opus';
             apiKey = process.env.DEFAULT_CLAUDE_API_KEY;
             break;
           case 'openai':
+            model = process.env.OPENAI_MODEL || 'gpt-4o';
             apiKey = process.env.DEFAULT_OPENAI_API_KEY;
             break;
           case 'ollama':
+            model = process.env.OLLAMA_MODEL || 'llama3';
             apiKey = process.env.DEFAULT_OLLAMA_API_KEY;
             break;
         }
 
         if (!apiKey) {
           throw new BadRequestException(`No API key configured for ${provider} and no system default is available.`);
+        }
+      } else {
+        if (!apiKey) {
+          throw new BadRequestException(`User explicitly configured provider ${provider} but provided no API key.`);
         }
       }
 
@@ -194,6 +206,16 @@ export class AIService {
 
     return this.runWithResilience(correlationId, 'analyzeProgress', () =>
       provider.analyzeProgress(progressData, config)
+    );
+  }
+
+  async generateOnboardingQuestions(userId: string, skillName: string, rawCorrelationId?: string): Promise<any> {
+    const correlationId = rawCorrelationId || crypto.randomUUID();
+    const config = await this.loadUserConfig(userId, correlationId);
+    const provider = this.factory.getProvider(config);
+
+    return this.runWithResilience(correlationId, 'generateOnboardingQuestions', () =>
+      provider.generateOnboardingQuestions(skillName, config)
     );
   }
 }

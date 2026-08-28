@@ -6,7 +6,8 @@ import type { Request } from 'express';
 @Injectable()
 export class UserServiceClient extends BaseServiceClient {
   protected readonly logger = new Logger(UserServiceClient.name);
-  protected readonly baseUrl = process.env.USER_SERVICE_URL || 'http://localhost:4001';
+  protected readonly baseUrl =
+    process.env.USER_SERVICE_URL || 'http://localhost:4001';
 
   constructor(httpService: HttpService) {
     super(httpService);

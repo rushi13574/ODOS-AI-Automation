@@ -6,14 +6,18 @@ import type { Request } from 'express';
 @Injectable()
 export class ResourceDocumentServiceClient extends BaseServiceClient {
   protected readonly logger = new Logger(ResourceDocumentServiceClient.name);
-  protected readonly baseUrl = process.env.RESOURCE_SERVICE_URL || 'http://localhost:4006';
+  protected readonly baseUrl =
+    process.env.RESOURCE_SERVICE_URL || 'http://localhost:4006';
 
   constructor(httpService: HttpService) {
     super(httpService);
   }
 
   async searchResources(query: string, req: Request) {
-    return this.get(`/resources/search?query=${encodeURIComponent(query)}`, req);
+    return this.get(
+      `/resources/search?query=${encodeURIComponent(query)}`,
+      req,
+    );
   }
 
   async getSkillResources(skillId: string, req: Request) {

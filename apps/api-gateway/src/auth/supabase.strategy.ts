@@ -6,18 +6,26 @@ import { passportJwtSecret } from 'jwks-rsa';
 @Injectable()
 export class SupabaseStrategy extends PassportStrategy(Strategy, 'supabase') {
   constructor() {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL;
+
+    if (!supabaseUrl) {
+      throw new Error(
+        'SUPABASE_URL is required for Supabase JWT verification',
+      );
+    }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
+
       secretOrKeyProvider: passportJwtSecret({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 10,
-        jwksUri: `${supabaseUrl}/auth/v1/keys`,
+        jwksUri: `${supabaseUrl}/auth/v1/.well-known/jwks.json`,
       }),
-      algorithms: ['RS256'],
+
+      algorithms: ['ES256', 'RS256'],
     });
   }
 
@@ -25,7 +33,7 @@ export class SupabaseStrategy extends PassportStrategy(Strategy, 'supabase') {
     if (!payload || !payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    // Return standard user metadata containing the Supabase UUID
+
     return {
       supabaseId: payload.sub,
       email: payload.email,

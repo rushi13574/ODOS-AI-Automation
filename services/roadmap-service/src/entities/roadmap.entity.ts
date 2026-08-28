@@ -13,6 +13,9 @@ export class Roadmap {
   @Column()
   userId!: string;
 
+  @Column({ nullable: true })
+  learningGoalId?: string;
+
   @Column()
   targetSkill!: string;
 

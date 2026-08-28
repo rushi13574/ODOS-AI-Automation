@@ -4,18 +4,25 @@ import { UserController } from './user.controller';
 import { HealthController } from './health.controller';
 import { UserService } from './user.service';
 import { User } from './entities/user.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '../../.env',
+    }),
+
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/odos',
       autoLoadEntities: true,
-      synchronize: true, // Use carefully in production!
+      synchronize: true,
     }),
+
     TypeOrmModule.forFeature([User]),
   ],
   controllers: [UserController, HealthController],
   providers: [UserService],
 })
-export class AppModule {}
+export class AppModule { }

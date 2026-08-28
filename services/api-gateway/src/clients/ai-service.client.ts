@@ -6,7 +6,8 @@ import type { Request } from 'express';
 @Injectable()
 export class AIServiceClient extends BaseServiceClient {
   protected readonly logger = new Logger(AIServiceClient.name);
-  protected readonly baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:4005';
+  protected readonly baseUrl =
+    process.env.AI_SERVICE_URL || 'http://localhost:4005';
 
   constructor(httpService: HttpService) {
     super(httpService);
@@ -28,5 +29,9 @@ export class AIServiceClient extends BaseServiceClient {
 
   async generateQuiz(data: any, req: Request) {
     return this.post('/ai/quiz', data, req, { timeout: 20000 });
+  }
+
+  async generateOnboardingQuestions(data: any, req: Request) {
+    return this.post('/ai/onboarding-questions', data, req, { timeout: 25000 });
   }
 }
