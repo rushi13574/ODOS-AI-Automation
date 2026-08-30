@@ -40,14 +40,24 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
   
-  // Enable CORS securely for development origins
+  const isProduction = process.env.NODE_ENV === 'production';
+  const frontendUrl = process.env.FRONTEND_URL;
+
+  if (isProduction && !frontendUrl) {
+    throw new Error('FRONTEND_URL environment variable is strictly required in production.');
+  }
+
+  const allowedOrigins = isProduction
+    ? [frontendUrl]
+    : ['http://localhost:3000', 'http://192.168.1.6:3000', frontendUrl].filter(Boolean);
+
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://192.168.1.6:3000'],
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  const port = process.env['PORT'] || process.env['API_GATEWAY_PORT'] || 4000;
+  const port = Number(process.env.PORT) || 4000;
   await app.listen(port);
   logger.log(`Running on http://localhost:${port}`);
 }

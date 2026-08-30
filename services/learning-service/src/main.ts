@@ -20,7 +20,7 @@ async function bootstrap() {
   // Internal microservice CORS restriction (Gateway handles public CORS)
   app.enableCors({ origin: false });
 
-  const port = process.env.LEARNING_SERVICE_PORT || 4002;
+  const port = Number(process.env.PORT) || 4002;
   await app.listen(port);
   logger.log(`Running on http://localhost:${port}`);
 }

@@ -34,8 +34,16 @@ export type RoadmapResponse = z.infer<typeof RoadmapResponseSchema>;
 
 @Injectable()
 export class AiClientService {
-  private readonly AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:4005';
+  private getAiServiceUrl(): string {
+    const isProd = process.env.NODE_ENV === 'production';
+    const url = process.env.AI_SERVICE_URL;
+    if (isProd && !url) {
+      throw new Error('AI_SERVICE_URL environment variable is strictly required in production.');
+    }
+    return url || 'http://localhost:4005';
+  }
 
+  private readonly AI_SERVICE_URL = this.getAiServiceUrl();
   constructor(private readonly httpService: HttpService) {}
 
   async generateRoadmap(userId: string, prompt: string, correlationId: string): Promise<RoadmapResponse> {

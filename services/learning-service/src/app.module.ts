@@ -12,6 +12,12 @@ import { SkillNode } from './entities/skill-node.entity';
 import { SkillDependency } from './entities/skill-dependency.entity';
 import { TaskProgress } from './entities/task-progress.entity';
 
+const isProd = process.env.NODE_ENV === 'production';
+const dbUrl = process.env.DATABASE_URL;
+if (isProd && !dbUrl) {
+  throw new Error('DATABASE_URL environment variable is strictly required in production.');
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,7 +26,7 @@ import { TaskProgress } from './entities/task-progress.entity';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/odos',
+      url: dbUrl || 'postgresql://postgres:postgres@localhost:5432/odos',
       autoLoadEntities: true,
       synchronize: true, // For development only
     }),

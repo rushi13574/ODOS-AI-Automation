@@ -7,7 +7,16 @@ import * as crypto from 'crypto';
 @Injectable()
 export class AIService {
   private readonly logger = new OdosLogger('AI Service');
-  private readonly USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:4001';
+  private getUserServiceUrl(): string {
+    const isProd = process.env.NODE_ENV === 'production';
+    const url = process.env.USER_SERVICE_URL;
+    if (isProd && !url) {
+      throw new Error('USER_SERVICE_URL environment variable is strictly required in production.');
+    }
+    return url || 'http://localhost:4001';
+  }
+
+  private readonly USER_SERVICE_URL = this.getUserServiceUrl();
 
   constructor(private readonly factory: AIProviderFactory) {}
 

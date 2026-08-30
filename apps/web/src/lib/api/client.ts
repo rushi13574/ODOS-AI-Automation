@@ -1,12 +1,21 @@
 import { createApiClient } from '@odos/api-client';
 import { createClient } from '@/lib/auth/supabase';
 
+function getApiUrl(): string {
+  const isProd = process.env.NODE_ENV === 'production';
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (isProd && !url) {
+    console.error('NEXT_PUBLIC_API_URL environment variable is strictly required in production.');
+  }
+  return url || 'http://localhost:4000/api/v1';
+}
+
 /**
  * Preconfigured API client communicating with the API Gateway.
  * Uses the shared @odos/api-client factory with Supabase JWT injection.
  */
 const apiClient = createApiClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1',
+  baseURL: getApiUrl(),
   getToken: async () => {
     try {
       const supabase = createClient();

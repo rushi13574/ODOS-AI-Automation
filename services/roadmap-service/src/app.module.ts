@@ -4,6 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthController } from './health.controller';
 import { RoadmapModule } from './roadmap/roadmap.module';
 
+const isProd = process.env.NODE_ENV === 'production';
+const dbUrl = process.env.DATABASE_URL;
+if (isProd && !dbUrl) {
+  throw new Error('DATABASE_URL environment variable is strictly required in production.');
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -12,7 +18,7 @@ import { RoadmapModule } from './roadmap/roadmap.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/odos',
+      url: dbUrl || 'postgresql://postgres:postgres@localhost:5432/odos',
       autoLoadEntities: true,
       synchronize: true, // For development only
     }),
